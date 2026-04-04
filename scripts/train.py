@@ -102,8 +102,9 @@ def build_model(model_cfg, device):
 
 
 def run_epoch(model, loader, dm, criterion, forward_fn, chn_ids_base,
-              device, ignore_index, optimizer=None, scheduler=None,
-              params=None, log=None, epoch_str="", log_interval=300):
+              rgb_indices, device, ignore_index, optimizer=None,
+              scheduler=None, params=None, log=None, epoch_str="",
+              log_interval=300):
     """Shared train/val epoch logic. Pass optimizer=None for validation."""
     training = optimizer is not None
     if training:
@@ -129,7 +130,7 @@ def run_epoch(model, loader, dm, criterion, forward_fn, chn_ids_base,
             B = ms.shape[0]
             chn_ids = chn_ids_base[:B] if chn_ids_base is not None else None
 
-            out = forward_fn(model, ms, ndsm, chn_ids, None)
+            out = forward_fn(model, ms, ndsm, chn_ids, rgb_indices)
             losses = criterion(out['logits'], gt)
 
             if training:
@@ -298,9 +299,9 @@ def main():
 
         train_losses, train_acc = run_epoch(
             model, train_loader, dm, criterion, forward_fn, chn_ids_base,
-            device, ignore_index, optimizer=optimizer, scheduler=scheduler,
-            params=params, log=log, epoch_str=epoch_str,
-            log_interval=log_interval)
+            rgb_indices, device, ignore_index, optimizer=optimizer,
+            scheduler=scheduler, params=params, log=log,
+            epoch_str=epoch_str, log_interval=log_interval)
 
         elapsed = time.time() - t0
         log.info(f"Epoch {epoch+1}/{max_epochs} ({elapsed:.0f}s) -- "
@@ -319,7 +320,7 @@ def main():
 
         val_losses, val_acc, all_preds, all_targets = run_epoch(
             model, val_loader, dm, criterion, forward_fn, chn_ids_base,
-            device, ignore_index)
+            rgb_indices, device, ignore_index)
 
         miou, per_class = compute_miou(
             all_preds, all_targets, model_cfg["num_classes"], ignore_index)

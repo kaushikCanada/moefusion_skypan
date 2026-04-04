@@ -375,5 +375,12 @@ class PotsdamDataModule:
         """Apply training augmentations (on GPU)."""
         gt = gt.unsqueeze(1).float()
         ms, ndsm, gt = self.transform(ms, ndsm, gt)
+        # Kornia may add a leading dim — squeeze back to (B, C, H, W)
+        if ms.ndim == 5:
+            ms = ms.squeeze(1)
+        if ndsm.ndim == 5:
+            ndsm = ndsm.squeeze(1)
+        if gt.ndim == 5:
+            gt = gt.squeeze(1)
         gt = gt.squeeze(1).long()
         return ms, ndsm, gt
