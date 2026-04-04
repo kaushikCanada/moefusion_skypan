@@ -1,0 +1,63 @@
+# ── Potsdam Dataset + MoE Fusion Model Config ──────────────────────────────
+
+dataset:
+  name: "potsdam"
+  root: "/data/ISPRS/Potsdam"
+  patch_size: 256
+  patch_stride: 256
+  nodata_threshold: 0.7
+  max_sampler_checks: 0
+  num_workers: 8
+  batch_size: 2
+  ignore_index: 0
+
+  normalization:
+    ms:
+      mean: [87.141, 93.508, 85.990, 107.422]
+      std: [34.971, 35.606, 37.119, 36.602]
+    ndsm:
+      mean: 0.159
+      std: 0.830
+
+  ndsm_opening_kernel: 17
+
+  split:
+    val_fraction: 0.3
+    seed: 42
+
+  # Band layout: R, G, B, IR (4 bands)
+  bands:
+    names: [R, G, B, IR]
+    wavelengths_nm: [650.0, 560.0, 450.0, 840.0]
+    rgb_indices: [0, 1, 2]
+
+  class_names:
+    - "Clutter/background"
+    - "Impervious surfaces"
+    - "Building"
+    - "Low vegetation"
+    - "Tree"
+    - "Car"
+
+model:
+  num_classes: 7  # 0=ignore, 1-6=classes (ignore_index=0 handled by loss)
+  img_size: 256
+  fpn_channels: 256
+  dropout: 0.1
+  skysense_weights: "/workspace/ckpt/skysensepp_release_hr.pth"
+  panopticon_checkpoint: "/workspace/ckpt/panopticon_vitb14_teacher.pth"
+
+training:
+  max_epochs: 20
+  lr: 1.0e-4
+  weight_decay: 0.01
+  scheduler: "cosine"
+  warmup_epochs: 2
+  val_interval: 1        # validate every N epochs
+  log_interval: 300       # print every N steps
+
+  loss:
+    ce_weight: 1.0
+    lovasz_weight: 1.0
+    gate_entropy_weight: 0.1
+    label_smoothing: 0.1

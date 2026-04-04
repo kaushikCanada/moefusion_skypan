@@ -1,0 +1,23 @@
+services:
+  moefusion:
+    build: .
+    image: moefusion:latest
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
+    shm_size: 50g
+    volumes:
+      - .:/workspace
+      - D:\EODATA:/data
+    environment:
+      - PYTHONPATH=/workspace
+      - PROJ_DATA=/workspace/.pixi/envs/default/lib/python3.11/site-packages/rasterio/proj_data
+      - CPL_LOG=OFF
+    ports:
+      - "8889:8888"
+    working_dir: /workspace
+    command: bash

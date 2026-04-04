@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# Pixi environment
+.pixi/
+pixi.lock
+
+# Outputs (checkpoints, logs, figures)
+outputs/
+
+# Model weights
+ckpt/
+
+# Data
+*.tif
+*.tiff
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# GDAL log artifacts
+OFF
