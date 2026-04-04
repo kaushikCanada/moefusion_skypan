@@ -3,7 +3,7 @@
 
 dataset:
   name: "potsdam"
-  root: "/data/ISPRS/Potsdam"
+  root: "/data/ISPRS/data/potsdam/Potsdam"
   patch_size: 256
   patch_stride: 256
   nodata_threshold: 0.7
@@ -40,6 +40,7 @@ dataset:
     - "Car"
 
 model:
+  arch: "unet_baseline"
   num_classes: 7
   in_channels: 5  # RGBIR + nDSM
   encoder_name: "efficientnet-b4"

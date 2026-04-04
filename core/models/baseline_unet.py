@@ -25,8 +25,8 @@ class BaselineUNet(nn.Module):
     def forward(self, x):
         """
         Args:
-            x: (B, 5, H, W) — RGBIR + nDSM concatenated.
+            x: (B, in_channels, H, W) — e.g. RGBIR + nDSM concatenated.
         Returns:
-            logits: (B, num_classes, H, W)
+            dict with 'logits': (B, num_classes, H, W)
         """
-        return self.model(x)
+        return {'logits': self.model(x)}

@@ -23,21 +23,21 @@ IGNORE_INDEX = 0
 
 OFFICIAL_TRAIN_TILES = (
     "top_potsdam_2_10", "top_potsdam_2_11", "top_potsdam_2_12",
-    # "top_potsdam_3_10", "top_potsdam_3_11", "top_potsdam_3_12",
-    # "top_potsdam_4_10", "top_potsdam_4_11", "top_potsdam_4_12",
-    # "top_potsdam_5_10", "top_potsdam_5_11", "top_potsdam_5_12",
-    # "top_potsdam_6_10", "top_potsdam_6_11", "top_potsdam_6_12",
-    # "top_potsdam_6_7",  "top_potsdam_6_8",  "top_potsdam_6_9",
-    # "top_potsdam_7_10", "top_potsdam_7_11", "top_potsdam_7_12",
+    "top_potsdam_3_10", "top_potsdam_3_11", "top_potsdam_3_12",
+    "top_potsdam_4_10", "top_potsdam_4_11", "top_potsdam_4_12",
+    "top_potsdam_5_10", "top_potsdam_5_11", "top_potsdam_5_12",
+    "top_potsdam_6_10", "top_potsdam_6_11", "top_potsdam_6_12",
+    "top_potsdam_6_7",  "top_potsdam_6_8",  "top_potsdam_6_9",
+    "top_potsdam_7_10", "top_potsdam_7_11", "top_potsdam_7_12",
     "top_potsdam_7_7",  "top_potsdam_7_8",  "top_potsdam_7_9",
 )
 
 OFFICIAL_TEST_TILES = (
-    # "top_potsdam_5_15", "top_potsdam_6_15", "top_potsdam_6_13",
-    # "top_potsdam_3_13", "top_potsdam_4_14", "top_potsdam_6_14",
-    # "top_potsdam_5_14", "top_potsdam_2_13", "top_potsdam_4_15",
+    "top_potsdam_5_15", "top_potsdam_6_15", "top_potsdam_6_13",
+    "top_potsdam_3_13", "top_potsdam_4_14", "top_potsdam_6_14",
+    "top_potsdam_5_14", "top_potsdam_2_13", "top_potsdam_4_15",
     "top_potsdam_2_14", "top_potsdam_5_13", "top_potsdam_4_13",
-    # "top_potsdam_3_14", "top_potsdam_7_13",
+    "top_potsdam_3_14", "top_potsdam_7_13",
 )
 
 CLASS_NAMES = (

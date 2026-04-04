@@ -2,13 +2,13 @@
 
 dataset:
   name: "potsdam"
-  root: "/data/ISPRS/Potsdam"
+  root: "/data/ISPRS/data/potsdam/Potsdam"
   patch_size: 256
   patch_stride: 256
   nodata_threshold: 0.7
   max_sampler_checks: 0
   num_workers: 8
-  batch_size: 2
+  batch_size: 8
   ignore_index: 0
 
   normalization:
@@ -47,6 +47,10 @@ model:
   skysense_weights: "/workspace/ckpt/skysensepp_release_hr.pth"
   panopticon_checkpoint: "/workspace/ckpt/panopticon_vitb14_teacher.pth"
 
+  # Ablation flags
+  use_panopticon_spatial: true
+  use_ndsm: true
+
 training:
   max_epochs: 20
   lr: 1.0e-4
@@ -59,5 +63,4 @@ training:
   loss:
     ce_weight: 1.0
     lovasz_weight: 1.0
-    gate_entropy_weight: 0.1
     label_smoothing: 0.1
