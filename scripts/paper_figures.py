@@ -381,21 +381,54 @@ def main():
     base_miou = np.mean([x for x in base_ious if x > 0])
     fig_iou_comparison(moe_ious, base_ious, moe_miou, base_miou, args.out)
 
+    # ── Compute full metrics for both models ──────────────────────────────
+    def full_metrics(preds, targets, ignore_index):
+        valid = targets != ignore_index
+        p, t = preds[valid], targets[valid]
+        total = t.numel()
+        oa = (p == t).float().mean().item()
+
+        ious, f1s = [], []
+        for c in range(1, len(CLASS_NAMES) + 1):
+            pc, tc = p == c, t == c
+            tp = (pc & tc).sum().item()
+            fp = (pc & ~tc).sum().item()
+            fn = (~pc & tc).sum().item()
+            union = tp + fp + fn
+            ious.append(tp / union if union > 0 else 0.0)
+            prec = tp / (tp + fp) if (tp + fp) > 0 else 0.0
+            rec = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+            f1s.append(2 * prec * rec / (prec + rec) if (prec + rec) > 0 else 0.0)
+
+        miou = np.mean([x for x in ious if x > 0])
+        mf1 = np.mean(f1s)
+
+        # Cohen's Kappa
+        pe = sum(((p == c).sum().item() / total) * ((t == c).sum().item() / total)
+                 for c in range(1, len(CLASS_NAMES) + 1))
+        kappa = (oa - pe) / (1.0 - pe) if (1.0 - pe) > 0 else 0.0
+
+        return oa, miou, mf1, kappa, ious, f1s
+
+    moe_oa, moe_miou, moe_mf1, moe_kappa, moe_ious2, moe_f1s = \
+        full_metrics(all_moe_preds, all_targets, ignore_index)
+    base_oa, base_miou, base_mf1, base_kappa, base_ious2, base_f1s = \
+        full_metrics(all_base_preds, all_targets, ignore_index)
+
     # ── Print summary table ─────────────────────────────────────────────
-    print(f"\n{'='*50}")
-    print(f"  {'Metric':<12} {'MoE Fusion':>12} {'UNet-EffB4':>12}")
-    print(f"  {'-'*36}")
-    print(f"  {'mIoU':<12} {moe_miou:>12.4f} {base_miou:>12.4f}")
-
-    valid = all_targets != ignore_index
-    moe_oa = (all_moe_preds[valid] == all_targets[valid]).float().mean().item()
-    base_oa = (all_base_preds[valid] == all_targets[valid]).float().mean().item()
-    print(f"  {'OA':<12} {moe_oa:>12.4f} {base_oa:>12.4f}")
-
-    print(f"  {'-'*36}")
+    print(f"\n{'='*55}")
+    print(f"  {'Metric':<12} {'MoE Fusion':>14} {'UNet-EffB4':>14}")
+    print(f"  {'-'*42}")
+    print(f"  {'OA':<12} {moe_oa:>14.4f} {base_oa:>14.4f}")
+    print(f"  {'mIoU':<12} {moe_miou:>14.4f} {base_miou:>14.4f}")
+    print(f"  {'mF1':<12} {moe_mf1:>14.4f} {base_mf1:>14.4f}")
+    print(f"  {'Kappa':<12} {moe_kappa:>14.4f} {base_kappa:>14.4f}")
+    print(f"  {'-'*42}")
+    print(f"  {'Class':<12} {'IoU':>7} {'F1':>7} {'IoU':>7} {'F1':>7}")
     for i, name in enumerate(CLASS_NAMES):
-        print(f"  {name:<12} {moe_ious[i]:>12.4f} {base_ious[i]:>12.4f}")
-    print(f"{'='*50}")
+        print(f"  {name:<12} {moe_ious2[i]:>7.4f} {moe_f1s[i]:>7.4f} "
+              f"{base_ious2[i]:>7.4f} {base_f1s[i]:>7.4f}")
+    print(f"{'='*55}")
 
     print(f"\nAll figures saved to: {args.out}/")
 
