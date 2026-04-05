@@ -63,6 +63,45 @@ def build_model(model_cfg, device):
 
         return model, variant_name, forward_fn, lambda m: None
 
+    elif arch == "u_panopticon":
+        from core.models.u_panopticon import UPanopticon
+        model = UPanopticon(
+            num_classes=model_cfg["num_classes"],
+            in_channels=model_cfg.get("in_channels", 5),
+            encoder_name=model_cfg.get("encoder_name", "efficientnet-b4"),
+            encoder_weights=model_cfg.get("encoder_weights", "imagenet"),
+            panopticon_checkpoint=model_cfg.get("panopticon_checkpoint"),
+            proj_channels=model_cfg.get("proj_channels", 256),
+        ).to(device)
+        variant_name = f"u_panopticon_{model_cfg.get('encoder_name', 'effb4')}"
+
+        def forward_fn(model, ms, ndsm, chn_ids, rgb_indices):
+            x = torch.cat([ms, ndsm], dim=1)  # 5-ch for UNet
+            return model(x, x_ms=ms, chn_ids=chn_ids, rgb_indices=rgb_indices)
+
+        def set_eval_backbones(model):
+            model.panopticon.eval()
+
+        return model, variant_name, forward_fn, set_eval_backbones
+
+    elif arch == "unetformer":
+        from core.models.baseline_unetformer import BaselineUNetFormer
+        model = BaselineUNetFormer(
+            num_classes=model_cfg["num_classes"],
+            in_channels=model_cfg.get("in_channels", 5),
+            decode_channels=model_cfg.get("decode_channels", 64),
+            backbone_name=model_cfg.get("backbone_name", "swsl_resnet18"),
+            pretrained=model_cfg.get("pretrained", True),
+            window_size=model_cfg.get("window_size", 8),
+            dropout=model_cfg.get("dropout", 0.1),
+        ).to(device)
+        variant_name = f"unetformer_{model_cfg.get('backbone_name', 'resnet18')}"
+
+        def forward_fn(model, ms, ndsm, chn_ids, rgb_indices):
+            return model(torch.cat([ms, ndsm], dim=1))
+
+        return model, variant_name, forward_fn, lambda m: None
+
     elif arch == "moe_fusion":
         from core.models.moe_segmentor import MoESegmentor
         use_pan = model_cfg.get("use_panopticon_spatial", True)
@@ -132,6 +171,11 @@ def run_epoch(model, loader, dm, criterion, forward_fn, chn_ids_base,
 
             out = forward_fn(model, ms, ndsm, chn_ids, rgb_indices)
             losses = criterion(out['logits'], gt)
+
+            # Deep supervision (e.g. UNetFormer aux head)
+            if training and 'aux_logits' in out:
+                aux_losses = criterion(out['aux_logits'], gt)
+                losses['total'] = losses['total'] + 0.4 * aux_losses['total']
 
             if training:
                 optimizer.zero_grad()
@@ -208,8 +252,9 @@ def main():
         model_cfg, device)
 
     # Pre-allocate chn_ids (max batch size) — slice per step
-    use_pan = model_cfg.get("use_panopticon_spatial", False) and \
-              model_cfg.get("arch", "moe_fusion") == "moe_fusion"
+    arch = model_cfg.get("arch", "moe_fusion")
+    use_pan = arch == "u_panopticon" or \
+              (arch == "moe_fusion" and model_cfg.get("use_panopticon_spatial", False))
     max_bs = cfg["dataset"]["batch_size"]
     chn_ids_base = torch.tensor(
         [wavelengths] * max_bs, dtype=torch.float32, device=device

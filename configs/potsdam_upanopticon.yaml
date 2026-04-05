@@ -1,0 +1,62 @@
+# -- Potsdam: U-Panopticon (UNet-EffB4 + frozen Panopticon at bottleneck) ------
+# Inspired by U-Prithvi (Kostejn et al., 2025)
+
+dataset:
+  name: "potsdam"
+  root: "/data/ISPRS/data/potsdam/Potsdam"
+  patch_size: 256
+  patch_stride: 256
+  nodata_threshold: 0.7
+  max_sampler_checks: 0
+  num_workers: 8
+  batch_size: 8
+  ignore_index: 0
+
+  normalization:
+    ms:
+      mean: [87.141, 93.508, 85.990, 107.422]
+      std: [34.971, 35.606, 37.119, 36.602]
+    ndsm:
+      mean: 0.159
+      std: 0.830
+
+  ndsm_opening_kernel: 17
+
+  split:
+    val_fraction: 0.3
+    seed: 42
+
+  bands:
+    names: [R, G, B, IR]
+    wavelengths_nm: [650.0, 560.0, 450.0, 840.0]
+    rgb_indices: [0, 1, 2]
+
+  class_names:
+    - "Clutter/background"
+    - "Impervious surfaces"
+    - "Building"
+    - "Low vegetation"
+    - "Tree"
+    - "Car"
+
+model:
+  arch: "u_panopticon"
+  num_classes: 7
+  in_channels: 5  # RGBIR + nDSM
+  encoder_name: "efficientnet-b4"
+  panopticon_checkpoint: "/workspace/ckpt/panopticon_vitb14_teacher.pth"
+  proj_channels: 256
+
+training:
+  max_epochs: 20
+  lr: 1.0e-4
+  weight_decay: 0.01
+  scheduler: "cosine"
+  warmup_epochs: 2
+  val_interval: 1
+  log_interval: 300
+
+  loss:
+    ce_weight: 1.0
+    lovasz_weight: 1.0
+    label_smoothing: 0.1
