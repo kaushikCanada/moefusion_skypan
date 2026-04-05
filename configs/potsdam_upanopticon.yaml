@@ -6,7 +6,7 @@ dataset:
   root: "/data/ISPRS/data/potsdam/Potsdam"
   patch_size: 512
   patch_stride: 512
-  nodata_threshold: 0.7
+  nodata_threshold: 1.0
   max_sampler_checks: 0
   num_workers: 8
   batch_size: 16
@@ -53,7 +53,7 @@ training:
   weight_decay: 0.01
   scheduler: "cosine"
   warmup_epochs: 2
-  val_interval: 1
+  val_interval: 5
   log_interval: 300
 
   loss:
