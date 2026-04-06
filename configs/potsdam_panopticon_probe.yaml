@@ -1,11 +1,12 @@
-# -- Potsdam Baseline: UNetFormer (Wang et al., 2022) -------------------------
+# -- Potsdam: Panopticon Linear Probe (frozen encoder + 1x1 conv) -------------
+# Shows what Panopticon features alone can do. No nDSM, no trainable encoder.
 
 dataset:
   name: "potsdam"
   root: "/data/ISPRS/data/potsdam/Potsdam"
-  patch_size: 256
-  patch_stride: 256
-  nodata_threshold: 0.7
+  patch_size: 512
+  patch_stride: 512
+  nodata_threshold: 1.0
   max_sampler_checks: 0
   num_workers: 8
   batch_size: 32
@@ -38,22 +39,17 @@ dataset:
     - "Car"
 
 model:
-  arch: "unetformer"
+  arch: "panopticon_linear_probe"
   num_classes: 6
-  in_channels: 5  # RGBIR + nDSM
-  decode_channels: 64
-  backbone_name: "resnet50"
-  pretrained: true
-  window_size: 8
-  dropout: 0.1
+  panopticon_checkpoint: "/workspace/ckpt/panopticon_vitb14_teacher.pth"
 
 training:
-  max_epochs: 20
-  lr: 1.0e-4
+  max_epochs: 50
+  lr: 1.0e-3
   weight_decay: 0.01
   scheduler: "cosine"
   warmup_epochs: 2
-  val_interval: 1
+  val_interval: 5
   log_interval: 300
 
   loss:

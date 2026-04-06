@@ -29,7 +29,7 @@ import numpy as np
 
 def compute_miou(pred, target, num_classes, ignore_index=0):
     ious = []
-    for c in range(1, num_classes + 1):
+    for c in range(1, num_classes):
         pred_c = pred == c
         target_c = target == c
         intersection = (pred_c & target_c).sum().item()
@@ -48,7 +48,23 @@ def build_model(model_cfg, device):
     """
     arch = model_cfg.get("arch", "moe_fusion")
 
-    if arch == "unet_baseline":
+    if arch == "panopticon_linear_probe":
+        from core.models.panopticon_linear_probe import PanopticonLinearProbe
+        model = PanopticonLinearProbe(
+            num_classes=model_cfg["num_classes"],
+            panopticon_checkpoint=model_cfg.get("panopticon_checkpoint"),
+        ).to(device)
+        variant_name = "panopticon_linear_probe"
+
+        def forward_fn(model, ms, ndsm, chn_ids, rgb_indices):
+            return model(ms, chn_ids)
+
+        def set_eval_backbones(model):
+            model.panopticon.eval()
+
+        return model, variant_name, forward_fn, set_eval_backbones
+
+    elif arch == "unet_baseline":
         from core.models.baseline_unet import BaselineUNet
         model = BaselineUNet(
             num_classes=model_cfg["num_classes"],
@@ -81,6 +97,33 @@ def build_model(model_cfg, device):
 
         def set_eval_backbones(model):
             model.panopticon.eval()
+
+        return model, variant_name, forward_fn, set_eval_backbones
+
+    elif arch == "segformer_panopticon":
+        from core.models.segformer_panopticon import SegFormerPanopticon
+        use_pan = model_cfg.get("use_panopticon", True)
+        model = SegFormerPanopticon(
+            num_classes=model_cfg["num_classes"],
+            in_channels=model_cfg.get("in_channels", 5),
+            segformer_pretrained=model_cfg.get("segformer_pretrained",
+                "nvidia/segformer-b0-finetuned-ade-512-512"),
+            use_pretrained_weights=model_cfg.get("use_pretrained_weights", True),
+            use_panopticon=use_pan,
+            panopticon_checkpoint=model_cfg.get("panopticon_checkpoint"),
+        ).to(device)
+        variant = model_cfg.get('segformer_variant', 'b0')
+        variant_name = f"segformer_panopticon_{variant}" if use_pan else f"segformer_{variant}"
+
+        def forward_fn(model, ms, ndsm, chn_ids, rgb_indices):
+            x = torch.cat([ms, ndsm], dim=1)
+            if use_pan:
+                return model(x, x_ms=ms, chn_ids=chn_ids)
+            return model(x)
+
+        def set_eval_backbones(model):
+            if use_pan:
+                model.panopticon.eval()
 
         return model, variant_name, forward_fn, set_eval_backbones
 
@@ -253,7 +296,8 @@ def main():
 
     # Pre-allocate chn_ids (max batch size) — slice per step
     arch = model_cfg.get("arch", "moe_fusion")
-    use_pan = arch == "u_panopticon" or \
+    use_pan = arch in ("u_panopticon", "segformer_panopticon",
+                       "panopticon_linear_probe") or \
               (arch == "moe_fusion" and model_cfg.get("use_panopticon_spatial", False))
     max_bs = cfg["dataset"]["batch_size"]
     chn_ids_base = torch.tensor(
@@ -329,6 +373,9 @@ def main():
 
     log.info(f"Config: {args.config}")
     log.info(f"Variant: {variant_name}  |  arch: {model_cfg.get('arch', 'moe_fusion')}")
+    log.info(f"  use_panopticon={model_cfg.get('use_panopticon', model_cfg.get('use_panopticon_spatial', 'N/A'))}"
+             f"  use_pretrained_weights={model_cfg.get('use_pretrained_weights', 'N/A')}"
+             f"  encoder={model_cfg.get('encoder_name', model_cfg.get('segformer_variant', 'N/A'))}")
     log.info(f"Parameters -- Total: {total/1e6:.1f}M | Trainable: {trainable/1e6:.1f}M")
     log.info(f"Train: {len(dm.train_dataset)} | Val: {len(dm.val_dataset)} | "
              f"Test: {len(dm.test_dataset)}")

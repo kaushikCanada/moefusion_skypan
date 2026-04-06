@@ -41,7 +41,6 @@ OFFICIAL_TEST_TILES = (
 )
 
 CLASS_NAMES = (
-    "Clutter/background",
     "Impervious surfaces",
     "Building",
     "Low vegetation",
@@ -50,12 +49,12 @@ CLASS_NAMES = (
 )
 
 RGB_TO_CLASS_ID: dict[tuple[int, int, int], int] = {
-    (255, 0, 0): 1,
-    (255, 255, 255): 2,
-    (0, 0, 255): 3,
-    (0, 255, 255): 4,
-    (0, 255, 0): 5,
-    (255, 255, 0): 6,
+    (255, 0, 0): 0,       # Clutter -> ignore (was 1)
+    (255, 255, 255): 1,   # Impervious
+    (0, 0, 255): 2,       # Building
+    (0, 255, 255): 3,     # Low vegetation
+    (0, 255, 0): 4,       # Tree
+    (255, 255, 0): 5,     # Car
 }
 
 RGBIR_DIR = "4_Ortho_RGBIR"

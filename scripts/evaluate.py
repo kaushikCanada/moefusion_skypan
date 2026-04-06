@@ -35,16 +35,15 @@ from scripts.train import build_model
 
 
 CLASS_COLORS = np.array([
-    [0, 0, 0],         # 0: ignore
-    [255, 0, 0],       # 1: Clutter
-    [180, 180, 180],   # 2: Impervious
-    [0, 0, 255],       # 3: Building
-    [0, 255, 255],     # 4: Low veg
-    [0, 255, 0],       # 5: Tree
-    [255, 255, 0],     # 6: Car
+    [0, 0, 0],         # 0: ignore (clutter + nodata)
+    [180, 180, 180],   # 1: Impervious
+    [0, 0, 255],       # 2: Building
+    [0, 255, 255],     # 3: Low veg
+    [0, 255, 0],       # 4: Tree
+    [255, 255, 0],     # 5: Car
 ], dtype=np.uint8)
 
-CLASS_NAMES = ["Clutter", "Impervious", "Building", "Low veg", "Tree", "Car"]
+CLASS_NAMES = ["Impervious", "Building", "Low veg", "Tree", "Car"]
 
 
 def gt_to_rgb(mask):

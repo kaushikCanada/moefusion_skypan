@@ -32,7 +32,6 @@ dataset:
     rgb_indices: [0, 1, 2]
 
   class_names:
-    - "Clutter/background"
     - "Impervious surfaces"
     - "Building"
     - "Low vegetation"
@@ -41,7 +40,7 @@ dataset:
 
 model:
   arch: "u_panopticon"
-  num_classes: 7
+  num_classes: 6
   in_channels: 5  # RGBIR + nDSM
   encoder_name: "efficientnet-b4"
   panopticon_checkpoint: "/workspace/ckpt/panopticon_vitb14_teacher.pth"
