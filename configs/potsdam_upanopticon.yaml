@@ -47,7 +47,7 @@ model:
   proj_channels: 256
 
 training:
-  max_epochs: 100
+  max_epochs: 30
   lr: 6.0e-4
   weight_decay: 0.01
   scheduler: "cosine"

@@ -41,8 +41,8 @@ model:
   arch: "segformer_panopticon"
   num_classes: 6
   in_channels: 5  # RGBIR + nDSM
-  segformer_pretrained: "/workspace/ckpt/segformer"
-  segformer_variant: "b4"
+  segformer_pretrained: "/workspace/ckpt/segformer/b2"
+  segformer_variant: "b2"
   use_pretrained_weights: true
   use_panopticon: true
   panopticon_checkpoint: "/workspace/ckpt/panopticon_vitb14_teacher.pth"
