@@ -45,9 +45,20 @@ class PanopticonBackbone(nn.Module):
             state_dict = torch.load(checkpoint_path, map_location='cpu')
             if 'state_dict' in state_dict:
                 state_dict = state_dict['state_dict']
+            # Fix key prefix: checkpoint has 'blocks.0...' but model
+            # expects 'model.blocks.0...'
+            model_keys = set(self.backbone.state_dict().keys())
+            if any(k.startswith('model.') for k in model_keys) and \
+               not any(k.startswith('model.') for k in state_dict.keys()):
+                state_dict = {f'model.{k}': v for k, v in state_dict.items()}
+            # Remove keys with shape mismatch (e.g. pos_embed at different resolution)
+            model_sd = self.backbone.state_dict()
+            state_dict = {k: v for k, v in state_dict.items()
+                          if k in model_sd and v.shape == model_sd[k].shape}
             missing, unexpected = self.backbone.load_state_dict(
                 state_dict, strict=False)
             print(f"[Panopticon] Loaded weights from {checkpoint_path}")
+            print(f"  Matched keys: {len(model_keys) - len(missing)}/{len(model_keys)}")
             if missing:
                 print(f"  Missing keys ({len(missing)}): {missing[:5]}...")
             if unexpected:

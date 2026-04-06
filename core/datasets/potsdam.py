@@ -270,6 +270,7 @@ class PotsdamDataModule:
         self.ndsm_opening_kernel = int(ds.get("ndsm_opening_kernel", 17))
         self.val_fraction = float(ds.get("split", {}).get("val_fraction", 0.2))
         self.split_seed = int(ds.get("split", {}).get("seed", 42))
+        self.label_fraction = float(ds.get("label_fraction", 1.0))
 
         # Band config
         bands = ds.get("bands", {})
@@ -321,6 +322,14 @@ class PotsdamDataModule:
         gen = torch.Generator().manual_seed(self.split_seed)
         self.train_dataset, self.val_dataset = random_split(
             train_full, [train_len, val_len], generator=gen)
+
+        # Subsample training set if label_fraction < 1.0
+        if self.label_fraction < 1.0:
+            subset_size = max(1, int(len(self.train_dataset) * self.label_fraction))
+            discard_size = len(self.train_dataset) - subset_size
+            gen2 = torch.Generator().manual_seed(self.split_seed)
+            self.train_dataset, _ = random_split(
+                self.train_dataset, [subset_size, discard_size], generator=gen2)
 
         self.test_dataset = PotsdamDataset(
             root=self.root, split="test",

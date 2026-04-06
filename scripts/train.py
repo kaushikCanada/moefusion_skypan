@@ -263,12 +263,16 @@ def main():
                         help='Disable Panopticon spatial fusion')
     parser.add_argument('--no-ndsm', action='store_true',
                         help='Disable nDSM fusion')
+    parser.add_argument('--label-fraction', type=float, default=None,
+                        help='Fraction of training labels to use (e.g. 0.1 for 10%%)')
     args = parser.parse_args()
 
     with open(args.config) as f:
         cfg = yaml.safe_load(f)
 
     # CLI overrides for ablation
+    if args.label_fraction is not None:
+        cfg["dataset"]["label_fraction"] = args.label_fraction
     if args.no_panopticon:
         cfg["model"]["use_panopticon_spatial"] = False
     if args.no_ndsm:
@@ -355,7 +359,9 @@ def main():
         print(f"Resumed from epoch {start_epoch}, best mIoU={best_miou:.4f}")
 
     # -- Output dir + logging ------------------------------------------------
-    out_dir = Path(f"outputs/{variant_name}")
+    label_frac = cfg["dataset"].get("label_fraction", 1.0)
+    frac_suffix = f"_frac{label_frac:.2f}" if label_frac < 1.0 else ""
+    out_dir = Path(f"outputs/{variant_name}{frac_suffix}")
     out_dir.mkdir(parents=True, exist_ok=True)
 
     log = logging.getLogger("train")
