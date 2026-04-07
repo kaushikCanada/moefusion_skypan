@@ -48,7 +48,7 @@ model:
   panopticon_checkpoint: "/workspace/ckpt/panopticon_vitb14_teacher.pth"
 
 training:
-  max_epochs: 50
+  max_epochs: 30
   lr: 6.0e-5
   weight_decay: 0.01
   scheduler: "cosine"

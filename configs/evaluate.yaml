@@ -1,0 +1,24 @@
+# -- Evaluation: list all models to evaluate on test set ----------------------
+
+dataset_config: configs/potsdam_baseline.yaml
+
+models:
+  - label: "Linear Probe"
+    config: configs/potsdam_panopticon_probe.yaml
+    checkpoint: outputs/panopticon_linear_probe/best.pt
+
+  - label: "UNet-EffB4"
+    config: configs/potsdam_baseline.yaml
+    checkpoint: outputs/unet_efficientnet-b4/best.pt
+
+  - label: "U-Panopticon"
+    config: configs/potsdam_upanopticon.yaml
+    checkpoint: outputs/u_panopticon_efficientnet-b4/best.pt
+
+  - label: "SegFormer-B2"
+    config: configs/potsdam_segformer.yaml
+    checkpoint: outputs/segformer_b2/best.pt
+
+  - label: "SegFormer+Pan"
+    config: configs/potsdam_segformer_pan.yaml
+    checkpoint: outputs/segformer_panopticon_b2/best.pt

@@ -1,5 +1,4 @@
-# ── Potsdam Baseline: UNet-EfficientNet-B4 ──────────────────────────────────
-# Same data, splits, loss (minus gate entropy), eval as MoE config.
+# -- Potsdam: SegFormer + Panopticon (parallel decoder input) ------------------
 
 dataset:
   name: "potsdam"
@@ -9,7 +8,7 @@ dataset:
   nodata_threshold: 1.0
   max_sampler_checks: 0
   num_workers: 8
-  batch_size: 16
+  batch_size: 8
   ignore_index: 0
 
   normalization:
@@ -39,15 +38,18 @@ dataset:
     - "Car"
 
 model:
-  arch: "unet_baseline"
+  arch: "segformer_panopticon"
   num_classes: 6
   in_channels: 5  # RGBIR + nDSM
-  encoder_name: "efficientnet-b4"
-  encoder_weights: null     # add this line for no pretrain
+  segformer_pretrained: "/workspace/ckpt/segformer/b2"
+  segformer_variant: "b2"
+  use_pretrained_weights: false
+  use_panopticon: false
+  panopticon_checkpoint: "/workspace/ckpt/panopticon_vitb14_teacher.pth"
 
 training:
   max_epochs: 30
-  lr: 6.0e-4
+  lr: 6.0e-5
   weight_decay: 0.01
   scheduler: "cosine"
   warmup_epochs: 2
