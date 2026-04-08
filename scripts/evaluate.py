@@ -168,6 +168,24 @@ def main():
 
     print(f"{'=' * len(header)}")
 
+    # Compute and save confusion matrices
+    print("Computing confusion matrices...")
+    cms = {}
+    n = len(CLASS_NAMES)
+    for label in labels:
+        cm = np.zeros((n, n), dtype=np.int64)
+        p = all_preds[label][all_targets != ignore_index].numpy()
+        t = all_targets[all_targets != ignore_index].numpy()
+        for i in range(1, n + 1):
+            for j in range(1, n + 1):
+                cm[i-1, j-1] = ((t == i) & (p == j)).sum()
+        cms[label] = cm
+
+    npz_path = os.path.join(args.out, "confusion_matrices.npz")
+    np.savez(npz_path, labels=np.array(labels), class_names=np.array(CLASS_NAMES),
+             **{f"cm_{i}": cms[label] for i, label in enumerate(labels)})
+    print(f"Confusion matrices saved to: {npz_path}")
+
     # Save CSV
     csv_path = os.path.join(args.out, "metrics.csv")
     with open(csv_path, 'w') as f:

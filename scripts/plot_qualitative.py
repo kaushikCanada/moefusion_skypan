@@ -129,7 +129,10 @@ def main():
             for label in args.labels:
                 out = forward_fns[label](models[label], ms, ndsm, chn_ids,
                                          rgb_indices)
-                preds[label] = out['logits'].argmax(dim=1)
+                pred = out['logits'].argmax(dim=1)
+                # Mask predictions to 0 where GT is ignore
+                pred[gt == 0] = 0
+                preds[label] = pred
 
             # Take first sample from each selected batch
             # Denormalize nDSM for display
@@ -178,7 +181,7 @@ def main():
     patches += [mpatches.Patch(color=np.array(CLASS_COLORS[i+1]) / 255.0,
                                label=CLASS_NAMES[i]) for i in range(5)]
     fig.legend(handles=patches, loc='lower center', ncol=6,
-               fontsize=16, frameon=False)
+               fontsize=30, frameon=False)
     plt.tight_layout(rect=[0, 0.04, 1, 0.97])
     fig.savefig(args.out, dpi=300, bbox_inches='tight')
     plt.close()

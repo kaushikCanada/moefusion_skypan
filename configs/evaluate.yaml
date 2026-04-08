@@ -7,13 +7,13 @@ models:
     config: configs/potsdam_panopticon_probe.yaml
     checkpoint: outputs/panopticon_linear_probe/best.pt
 
-  # - label: "UNet-EffB4"
-  #   config: configs/potsdam_baseline.yaml
-  #   checkpoint: outputs/unet_efficientnet-b4/best.pt
+  - label: "UNet-EffB4"
+    config: configs/potsdam_baseline.yaml
+    checkpoint: outputs/unet_efficientnet-b4/best.pt
 
-  # - label: "U-Panopticon"
-  #   config: configs/potsdam_upanopticon.yaml
-  #   checkpoint: outputs/u_panopticon_efficientnet-b4/best.pt
+  - label: "U-Panopticon"
+    config: configs/potsdam_upanopticon.yaml
+    checkpoint: outputs/u_panopticon_efficientnet-b4/best.pt
 
   - label: "SegFormer-B2"
     config: configs/potsdam_segformer.yaml
@@ -24,4 +24,4 @@ models:
     checkpoint: outputs/segformer_panopticon_b2/best.pt
 
 # 127, 123, 122, 121, 115, 160 - unet
-# 10, 20, 30, 30, 100, 
+# 10, 20, 30, 70, 100, 110, 140, 170 - segformer

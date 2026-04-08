@@ -145,10 +145,56 @@ def fig_summary_table(models, class_names, out_dir):
     print(f"  Saved: {path}")
 
 
+def fig_confusion_matrices(npz_path, out_dir):
+    data = np.load(npz_path, allow_pickle=True)
+    labels = list(data['labels'])
+    class_names = list(data['class_names'])
+    num_models = len(labels)
+
+    fig, all_axes = plt.subplots(1, num_models + 1,
+                                  figsize=(7 * num_models + 1, 6),
+                                  gridspec_kw={'width_ratios': [1] * num_models + [0.05]})
+    axes = all_axes[:-1]
+    cbar_ax = all_axes[-1]
+
+    if num_models == 1:
+        axes = [axes]
+
+    for idx, (ax, label) in enumerate(zip(axes, labels)):
+        cm = data[f'cm_{idx}']
+        cm_norm = cm.astype(np.float32) / cm.sum(axis=1, keepdims=True).clip(1)
+        im = ax.imshow(cm_norm, cmap='Blues', vmin=0, vmax=1)
+        ax.set_title(label, fontsize=14, fontweight='bold', pad=30)
+        n = len(class_names)
+        ax.set_xticks(range(n))
+        ax.set_yticks(range(n))
+        ax.set_xticklabels(class_names, rotation=45, ha='right', fontsize=14)
+        ax.set_yticklabels(class_names, fontsize=14)
+        ax.set_xlabel("Predicted", fontsize=16)
+        ax.set_ylabel("True", fontsize=16)
+
+        for i in range(n):
+            for j in range(n):
+                val = cm_norm[i, j]
+                color = 'white' if val > 0.5 else 'black'
+                ax.text(j, i, f"{val:.2f}", ha='center', va='center',
+                        fontsize=12, color=color)
+
+    cb = fig.colorbar(im, cax=cbar_ax, label="Recall")
+    cb.ax.yaxis.label.set_fontsize(20)
+    cb.ax.tick_params(labelsize=14)
+    plt.tight_layout()
+    path = os.path.join(out_dir, "confusion_matrices.png")
+    fig.savefig(path, dpi=200, bbox_inches='tight')
+    plt.close()
+    print(f"  Saved: {path}")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Generate paper figures from metrics.csv")
     parser.add_argument('--csv', type=str, default='outputs/figures/metrics.csv')
+    parser.add_argument('--npz', type=str, default='outputs/figures/confusion_matrices.npz')
     parser.add_argument('--out', type=str, default='outputs/figures')
     args = parser.parse_args()
 
@@ -172,6 +218,11 @@ def main():
     print("Generating figures...")
     fig_iou_comparison(models, class_names, args.out)
     fig_summary_table(models, class_names, args.out)
+
+    if os.path.exists(args.npz):
+        fig_confusion_matrices(args.npz, args.out)
+    else:
+        print(f"  Skipping confusion matrices ({args.npz} not found)")
 
     print(f"\nAll figures saved to: {args.out}/")
 
