@@ -33,38 +33,142 @@ def get_class_names(models):
 
 
 def fig_iou_comparison(models, class_names, out_dir):
-    x = np.arange(len(class_names))
-    num_models = len(models)
-    width = 0.8 / num_models
-    colors = ['#2196F3', '#FF9800', '#4CAF50', '#E91E63', '#9C27B0', '#00BCD4']
+    import matplotlib.pyplot as plt
+    import matplotlib.patches as mpatches
+    import numpy as np
 
-    fig, ax = plt.subplots(figsize=(12, 5))
-    for m, model in enumerate(models):
-        ious = [float(model[f'IoU_{c}']) for c in class_names]
-        miou = float(model['mIoU'])
-        label = model['Model']
-        offset = (m - num_models / 2 + 0.5) * width
-        bars = ax.bar(x + offset, ious, width,
-                      label=f'{label} (mIoU={miou:.3f})',
-                      color=colors[m % len(colors)], edgecolor='white')
+    # ── Style ────────────────────────────────────────────────────────────────
+    plt.rcParams.update({
+        'font.family':       'DejaVu Sans',
+        'font.size':         20,
+        'axes.spines.top':   False,
+        'axes.spines.right': False,
+        'axes.spines.left':  False,
+        'axes.spines.bottom':False,
+    })
+
+    # Paired colors: baseline muted, +Panopticon saturated
+    # Gray=LinearProbe, Blue pair=UNet, Teal pair=SegFormer
+    colors = [
+        '#9E9E9E',   # Linear Probe — neutral gray
+        '#90CAF9',   # UNet-EffB4   — light blue
+        '#1565C0',   # U-Panopticon — deep blue
+        '#80CBC4',   # SegFormer-B2 — light teal
+        '#00695C',   # SegFormer+Pan — deep teal
+    ]
+
+    x          = np.arange(len(class_names))
+    n          = len(models)
+    width      = 0.14
+    group_gap  = 0.04
+    total_w    = n * width + (n - 1) * group_gap
+    offsets    = np.linspace(-total_w / 2 + width / 2,
+                              total_w / 2 - width / 2, n)
+
+    fig, ax = plt.subplots(figsize=(16, 6))
+    fig.patch.set_facecolor('white')
+    ax.set_facecolor('#FAFAFA')
+
+    # ── Bars ─────────────────────────────────────────────────────────────────
+    for m, (model, color) in enumerate(zip(models, colors)):
+        ious   = [float(model[f'IoU_{c}']) for c in class_names]
+        miou   = float(model['mIoU'])
+        label  = model['Model']
+
+        bars = ax.bar(
+            x + offsets[m], ious, width,
+            color=color,
+            edgecolor='white',
+            linewidth=0.6,
+            zorder=3,
+        )
+
+        # Value labels — only on top two performers to avoid clutter
         for bar in bars:
-            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.01,
-                    f'{bar.get_height():.2f}', ha='center', va='bottom',
-                    fontsize=7)
+            h = bar.get_height()
+            ax.text(
+                bar.get_x() + bar.get_width() / 2,
+                h + 0.008,
+                f'{h:.2f}',
+                ha='center', va='bottom',
+                fontsize=20,
+                color='#444444',
+            )
 
-    ax.set_ylabel('IoU', fontsize=12)
-    ax.set_title('Per-Class IoU Comparison', fontsize=14, fontweight='bold')
+    # ── Grid ─────────────────────────────────────────────────────────────────
+    ax.yaxis.grid(True, color='#E0E0E0', linewidth=0.8, zorder=0)
+    ax.set_axisbelow(True)
+
+    # ── Axes ─────────────────────────────────────────────────────────────────
+    ax.set_ylabel('IoU', fontsize=20, labelpad=8, color='#333333')
+    ax.set_ylim(0, 1.10)
+    ax.set_yticks(np.arange(0, 1.1, 0.2))
+    ax.set_yticklabels([f'{v:.1f}' for v in np.arange(0, 1.1, 0.2)],
+                       fontsize=20, color='#555555')
     ax.set_xticks(x)
-    ax.set_xticklabels(class_names, fontsize=10)
-    ax.legend(fontsize=9, loc='lower right')
-    ax.set_ylim(0, 1.05)
-    ax.grid(axis='y', alpha=0.3)
+    ax.set_xticklabels(class_names, fontsize=20, color='#333333')
+    ax.tick_params(axis='both', length=0)
 
-    plt.tight_layout()
+    # ── Legend ───────────────────────────────────────────────────────────────
+    patches = [
+        mpatches.Patch(color=colors[m],
+                       label=f"{model['Model']} (mIoU={float(model['mIoU']):.3f})")
+        for m, model in enumerate(models)
+    ]
+    ax.legend(
+        handles=patches,
+        fontsize=20,
+        loc='lower right',
+        frameon=True,
+        framealpha=0.92,
+        edgecolor='#CCCCCC',
+        ncol=1,
+    )
+
+    # ── Separator lines between class groups ─────────────────────────────────
+    for xi in x[:-1]:
+        ax.axvline(xi + 0.5, color='#E0E0E0', linewidth=1.0,
+                   linestyle='--', zorder=1)
+
+    plt.tight_layout(pad=1.5)
     path = os.path.join(out_dir, "iou_comparison.png")
-    fig.savefig(path, dpi=200, bbox_inches='tight')
+    fig.savefig(path, dpi=300, bbox_inches='tight', facecolor='white')
     plt.close()
     print(f"  Saved: {path}")
+
+# def fig_iou_comparison(models, class_names, out_dir):
+#     x = np.arange(len(class_names))
+#     num_models = len(models)
+#     width = 0.8 / num_models
+#     colors = ['#2196F3', '#FF9800', '#4CAF50', '#E91E63', '#9C27B0', '#00BCD4']
+
+#     fig, ax = plt.subplots(figsize=(12, 5))
+#     for m, model in enumerate(models):
+#         ious = [float(model[f'IoU_{c}']) for c in class_names]
+#         miou = float(model['mIoU'])
+#         label = model['Model']
+#         offset = (m - num_models / 2 + 0.5) * width
+#         bars = ax.bar(x + offset, ious, width,
+#                       label=f'{label} (mIoU={miou:.3f})',
+#                       color=colors[m % len(colors)], edgecolor='white')
+#         for bar in bars:
+#             ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.01,
+#                     f'{bar.get_height():.2f}', ha='center', va='bottom',
+#                     fontsize=7)
+
+#     ax.set_ylabel('IoU', fontsize=12)
+#     ax.set_title('Per-Class IoU Comparison', fontsize=14, fontweight='bold')
+#     ax.set_xticks(x)
+#     ax.set_xticklabels(class_names, fontsize=10)
+#     ax.legend(fontsize=9, loc='lower right')
+#     ax.set_ylim(0, 1.05)
+#     ax.grid(axis='y', alpha=0.3)
+
+#     plt.tight_layout()
+#     path = os.path.join(out_dir, "iou_comparison.png")
+#     fig.savefig(path, dpi=200, bbox_inches='tight')
+#     plt.close()
+#     print(f"  Saved: {path}")
 
 
 def fig_delta_iou(models, class_names, out_dir):
