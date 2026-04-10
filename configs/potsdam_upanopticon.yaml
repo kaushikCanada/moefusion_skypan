@@ -41,7 +41,7 @@ dataset:
 model:
   arch: "u_panopticon"
   num_classes: 6
-  in_channels: 5  # RGBIR + nDSM
+  in_channels: 6  # RGBIR + nDSM + NDVI
   encoder_name: "efficientnet-b4"
   panopticon_checkpoint: "/workspace/ckpt/panopticon_vitb14_teacher.pth"
   proj_channels: 256

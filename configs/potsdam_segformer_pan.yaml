@@ -40,7 +40,7 @@ dataset:
 model:
   arch: "segformer_panopticon"
   num_classes: 6
-  in_channels: 5  # RGBIR + nDSM
+  in_channels: 6  # RGBIR + nDSM + NDVI
   segformer_pretrained: "/workspace/ckpt/segformer/b2"
   segformer_variant: "b2"
   use_pretrained_weights: true

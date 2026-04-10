@@ -44,7 +44,7 @@ def build_model(model_cfg, device):
     """Build model based on arch field in config.
 
     Returns (model, variant_name, forward_fn, set_eval_backbones).
-    forward_fn(model, ms, ndsm, chn_ids, rgb_indices) -> dict with 'logits'
+    forward_fn(model, ms, ndsm, ndvi, chn_ids, rgb_indices) -> dict with 'logits'
     """
     arch = model_cfg.get("arch", "moe_fusion")
 
@@ -56,7 +56,7 @@ def build_model(model_cfg, device):
         ).to(device)
         variant_name = "panopticon_linear_probe"
 
-        def forward_fn(model, ms, ndsm, chn_ids, rgb_indices):
+        def forward_fn(model, ms, ndsm, ndvi, chn_ids, rgb_indices):
             return model(ms, chn_ids)
 
         def set_eval_backbones(model):
@@ -74,8 +74,8 @@ def build_model(model_cfg, device):
         ).to(device)
         variant_name = f"unet_{model_cfg.get('encoder_name', 'effb4')}"
 
-        def forward_fn(model, ms, ndsm, chn_ids, rgb_indices):
-            return model(torch.cat([ms, ndsm], dim=1))
+        def forward_fn(model, ms, ndsm, ndvi, chn_ids, rgb_indices):
+            return model(torch.cat([ms, ndsm, ndvi], dim=1))
 
         return model, variant_name, forward_fn, lambda m: None
 
@@ -91,8 +91,8 @@ def build_model(model_cfg, device):
         ).to(device)
         variant_name = f"u_panopticon_{model_cfg.get('encoder_name', 'effb4')}"
 
-        def forward_fn(model, ms, ndsm, chn_ids, rgb_indices):
-            x = torch.cat([ms, ndsm], dim=1)  # 5-ch for UNet
+        def forward_fn(model, ms, ndsm, ndvi, chn_ids, rgb_indices):
+            x = torch.cat([ms, ndsm, ndvi], dim=1)  # 6-ch for UNet
             return model(x, x_ms=ms, chn_ids=chn_ids, rgb_indices=rgb_indices)
 
         def set_eval_backbones(model):
@@ -115,8 +115,8 @@ def build_model(model_cfg, device):
         variant = model_cfg.get('segformer_variant', 'b0')
         variant_name = f"segformer_panopticon_{variant}" if use_pan else f"segformer_{variant}"
 
-        def forward_fn(model, ms, ndsm, chn_ids, rgb_indices):
-            x = torch.cat([ms, ndsm], dim=1)
+        def forward_fn(model, ms, ndsm, ndvi, chn_ids, rgb_indices):
+            x = torch.cat([ms, ndsm, ndvi], dim=1)
             if use_pan:
                 return model(x, x_ms=ms, chn_ids=chn_ids)
             return model(x)
@@ -140,8 +140,8 @@ def build_model(model_cfg, device):
         ).to(device)
         variant_name = f"unetformer_{model_cfg.get('backbone_name', 'resnet18')}"
 
-        def forward_fn(model, ms, ndsm, chn_ids, rgb_indices):
-            return model(torch.cat([ms, ndsm], dim=1))
+        def forward_fn(model, ms, ndsm, ndvi, chn_ids, rgb_indices):
+            return model(torch.cat([ms, ndsm, ndvi], dim=1))
 
         return model, variant_name, forward_fn, lambda m: None
 
@@ -167,7 +167,7 @@ def build_model(model_cfg, device):
             parts.append("ndsm")
         variant_name = "+".join(parts)
 
-        def forward_fn(model, ms, ndsm, chn_ids, rgb_indices):
+        def forward_fn(model, ms, ndsm, ndvi, chn_ids, rgb_indices):
             return model(ms, chn_ids,
                          x_ndsm=ndsm if use_ndsm else None,
                          rgb_indices=rgb_indices)
@@ -203,16 +203,16 @@ def run_epoch(model, loader, dm, criterion, forward_fn, chn_ids_base,
 
     ctx = torch.no_grad() if not training else torch.enable_grad()
     with ctx:
-        for step, (ms, ndsm, gt) in enumerate(loader):
-            ms, ndsm, gt = ms.to(device), ndsm.to(device), gt.to(device)
+        for step, (ms, ndsm, ndvi, gt) in enumerate(loader):
+            ms, ndsm, ndvi, gt = ms.to(device), ndsm.to(device), ndvi.to(device), gt.to(device)
             ms, ndsm = dm.normalize(ms, ndsm, device=device)
             if training:
-                ms, ndsm, gt = dm.augment(ms, ndsm, gt)
+                ms, ndsm, ndvi, gt = dm.augment(ms, ndsm, ndvi, gt)
 
             B = ms.shape[0]
             chn_ids = chn_ids_base[:B] if chn_ids_base is not None else None
 
-            out = forward_fn(model, ms, ndsm, chn_ids, rgb_indices)
+            out = forward_fn(model, ms, ndsm, ndvi, chn_ids, rgb_indices)
             losses = criterion(out['logits'], gt)
 
             # Deep supervision (e.g. UNetFormer aux head)

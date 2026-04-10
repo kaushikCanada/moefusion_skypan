@@ -110,15 +110,15 @@ def main():
     all_targets = []
 
     with torch.no_grad():
-        for i, (ms, ndsm, gt) in enumerate(test_loader):
-            ms, ndsm, gt = ms.to(device), ndsm.to(device), gt.to(device)
+        for i, (ms, ndsm, ndvi, gt) in enumerate(test_loader):
+            ms, ndsm, ndvi, gt = ms.to(device), ndsm.to(device), ndvi.to(device), gt.to(device)
             ms, ndsm = dm.normalize(ms, ndsm, device=device)
 
             B = ms.shape[0]
             chn_ids = chn_ids_base[:B]
 
             for label in labels:
-                out = forward_fns[label](models[label], ms, ndsm, chn_ids, None)
+                out = forward_fns[label](models[label], ms, ndsm, ndvi, chn_ids, None)
                 pred = out['logits'].argmax(dim=1)
                 all_preds[label].append(pred.cpu())
 

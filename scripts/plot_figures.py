@@ -117,12 +117,13 @@ def fig_iou_comparison(models, class_names, out_dir):
     ]
     ax.legend(
         handles=patches,
-        fontsize=20,
-        loc='lower right',
+        fontsize=14,
+        loc='upper center',
+        bbox_to_anchor=(0.5, -0.15),
         frameon=True,
         framealpha=0.92,
         edgecolor='#CCCCCC',
-        ncol=1,
+        ncol=3,
     )
 
     # ── Separator lines between class groups ─────────────────────────────────
@@ -130,45 +131,13 @@ def fig_iou_comparison(models, class_names, out_dir):
         ax.axvline(xi + 0.5, color='#E0E0E0', linewidth=1.0,
                    linestyle='--', zorder=1)
 
-    plt.tight_layout(pad=1.5)
+    plt.tight_layout()
+    plt.subplots_adjust(bottom=0.25)
     path = os.path.join(out_dir, "iou_comparison.png")
     fig.savefig(path, dpi=300, bbox_inches='tight', facecolor='white')
     plt.close()
     print(f"  Saved: {path}")
 
-# def fig_iou_comparison(models, class_names, out_dir):
-#     x = np.arange(len(class_names))
-#     num_models = len(models)
-#     width = 0.8 / num_models
-#     colors = ['#2196F3', '#FF9800', '#4CAF50', '#E91E63', '#9C27B0', '#00BCD4']
-
-#     fig, ax = plt.subplots(figsize=(12, 5))
-#     for m, model in enumerate(models):
-#         ious = [float(model[f'IoU_{c}']) for c in class_names]
-#         miou = float(model['mIoU'])
-#         label = model['Model']
-#         offset = (m - num_models / 2 + 0.5) * width
-#         bars = ax.bar(x + offset, ious, width,
-#                       label=f'{label} (mIoU={miou:.3f})',
-#                       color=colors[m % len(colors)], edgecolor='white')
-#         for bar in bars:
-#             ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.01,
-#                     f'{bar.get_height():.2f}', ha='center', va='bottom',
-#                     fontsize=7)
-
-#     ax.set_ylabel('IoU', fontsize=12)
-#     ax.set_title('Per-Class IoU Comparison', fontsize=14, fontweight='bold')
-#     ax.set_xticks(x)
-#     ax.set_xticklabels(class_names, fontsize=10)
-#     ax.legend(fontsize=9, loc='lower right')
-#     ax.set_ylim(0, 1.05)
-#     ax.grid(axis='y', alpha=0.3)
-
-#     plt.tight_layout()
-#     path = os.path.join(out_dir, "iou_comparison.png")
-#     fig.savefig(path, dpi=200, bbox_inches='tight')
-#     plt.close()
-#     print(f"  Saved: {path}")
 
 
 def fig_delta_iou(models, class_names, out_dir):
@@ -250,48 +219,144 @@ def fig_summary_table(models, class_names, out_dir):
 
 
 def fig_confusion_matrices(npz_path, out_dir):
-    data = np.load(npz_path, allow_pickle=True)
-    labels = list(data['labels'])
+    import matplotlib.pyplot as plt
+    import matplotlib.gridspec as gridspec
+    import numpy as np
+
+    plt.rcParams.update({
+        'font.family': 'DejaVu Sans',
+        'font.size':   13,
+    })
+
+    data       = np.load(npz_path, allow_pickle=True)
+    labels     = list(data['labels'])
     class_names = list(data['class_names'])
-    num_models = len(labels)
+    num_models = len(labels)   # 5
 
-    fig, all_axes = plt.subplots(1, num_models + 1,
-                                  figsize=(7 * num_models + 1, 6),
-                                  gridspec_kw={'width_ratios': [1] * num_models + [0.05]})
-    axes = all_axes[:-1]
-    cbar_ax = all_axes[-1]
+    # ── Layout: 2 rows × 3 cols, last cell = colorbar ───────────────────────
+    # Row 0: models 0,1,2   Row 1: models 3,4 + colorbar slot
+    fig = plt.figure(figsize=(18, 12), facecolor='white')
+    fig.patch.set_facecolor('white')
 
-    if num_models == 1:
-        axes = [axes]
+    gs = gridspec.GridSpec(
+        2, 3,
+        figure=fig,
+        hspace=0.45,
+        wspace=0.35,
+    )
+
+    positions = [(0, 0), (0, 1), (0, 2), (1, 0), (1, 1)]
+    axes = [fig.add_subplot(gs[r, c]) for r, c in positions]
+
+    im_ref = None  # keep last imshow for colorbar
 
     for idx, (ax, label) in enumerate(zip(axes, labels)):
-        cm = data[f'cm_{idx}']
-        cm_norm = cm.astype(np.float32) / cm.sum(axis=1, keepdims=True).clip(1)
-        im = ax.imshow(cm_norm, cmap='Blues', vmin=0, vmax=1)
-        ax.set_title(label, fontsize=14, fontweight='bold', pad=30)
+        cm      = data[f'cm_{idx}']
+        cm_norm = (cm.astype(np.float32) /
+                   cm.sum(axis=1, keepdims=True).clip(1))
+
+        im = ax.imshow(cm_norm, cmap='Blues', vmin=0, vmax=1,
+                       aspect='equal')
+        im_ref = im
+
+        # ── Title ────────────────────────────────────────────────────────────
+        ax.set_title(label, fontsize=15, fontweight='bold', pad=14,
+                     color='#1a1a1a')
+
+        # ── Ticks ────────────────────────────────────────────────────────────
         n = len(class_names)
         ax.set_xticks(range(n))
         ax.set_yticks(range(n))
-        ax.set_xticklabels(class_names, rotation=45, ha='right', fontsize=14)
-        ax.set_yticklabels(class_names, fontsize=14)
-        ax.set_xlabel("Predicted", fontsize=16)
-        ax.set_ylabel("True", fontsize=16)
+        ax.set_xticklabels(class_names, rotation=40, ha='right',
+                           fontsize=12, color='#333333')
+        ax.set_yticklabels(class_names, fontsize=12, color='#333333')
+        ax.set_xlabel('Predicted', fontsize=13, labelpad=6,
+                      color='#333333')
+        ax.set_ylabel('True', fontsize=13, labelpad=6,
+                      color='#333333')
 
+        # ── Remove spines ────────────────────────────────────────────────────
+        for spine in ax.spines.values():
+            spine.set_visible(False)
+        ax.tick_params(length=0)
+
+        # ── Cell annotations ─────────────────────────────────────────────────
         for i in range(n):
             for j in range(n):
-                val = cm_norm[i, j]
-                color = 'white' if val > 0.5 else 'black'
-                ax.text(j, i, f"{val:.2f}", ha='center', va='center',
-                        fontsize=12, color=color)
+                val   = cm_norm[i, j]
+                color = 'white' if val > 0.55 else '#222222'
+                weight = 'bold' if i == j else 'normal'
+                ax.text(j, i, f'{val:.2f}',
+                        ha='center', va='center',
+                        fontsize=11.5, color=color,
+                        fontweight=weight)
 
-    cb = fig.colorbar(im, cax=cbar_ax, label="Recall")
-    cb.ax.yaxis.label.set_fontsize(20)
-    cb.ax.tick_params(labelsize=14)
-    plt.tight_layout()
-    path = os.path.join(out_dir, "confusion_matrices.png")
-    fig.savefig(path, dpi=200, bbox_inches='tight')
+        # ── Diagonal highlight border ─────────────────────────────────────────
+        for k in range(n):
+            ax.add_patch(plt.Rectangle(
+                (k - 0.5, k - 0.5), 1, 1,
+                fill=False, edgecolor='#1565C0',
+                linewidth=1.2, zorder=3))
+
+    # ── Colorbar in bottom-right cell ────────────────────────────────────────
+    cbar_ax = fig.add_subplot(gs[1, 2])
+    cbar_ax.set_facecolor('white')
+    cb = fig.colorbar(im_ref, ax=cbar_ax, fraction=0.6, pad=0.04,
+                      aspect=18)
+    cb.set_label('Recall', fontsize=14, color='#333333', labelpad=10)
+    cb.ax.tick_params(labelsize=12, color='#555555')
+    cb.outline.set_edgecolor('#CCCCCC')
+    cbar_ax.axis('off')
+
+    path = os.path.join(out_dir, 'confusion_matrices.png')
+    fig.savefig(path, dpi=300, bbox_inches='tight', facecolor='white')
     plt.close()
-    print(f"  Saved: {path}")
+    print(f'  Saved: {path}')
+
+
+# def fig_confusion_matrices(npz_path, out_dir):
+#     data = np.load(npz_path, allow_pickle=True)
+#     labels = list(data['labels'])
+#     class_names = list(data['class_names'])
+#     num_models = len(labels)
+
+#     fig, all_axes = plt.subplots(1, num_models + 1,
+#                                   figsize=(7 * num_models + 1, 6),
+#                                   gridspec_kw={'width_ratios': [1] * num_models + [0.05]})
+#     axes = all_axes[:-1]
+#     cbar_ax = all_axes[-1]
+
+#     if num_models == 1:
+#         axes = [axes]
+
+#     for idx, (ax, label) in enumerate(zip(axes, labels)):
+#         cm = data[f'cm_{idx}']
+#         cm_norm = cm.astype(np.float32) / cm.sum(axis=1, keepdims=True).clip(1)
+#         im = ax.imshow(cm_norm, cmap='Blues', vmin=0, vmax=1)
+#         ax.set_title(label, fontsize=14, fontweight='bold', pad=30)
+#         n = len(class_names)
+#         ax.set_xticks(range(n))
+#         ax.set_yticks(range(n))
+#         ax.set_xticklabels(class_names, rotation=45, ha='right', fontsize=14)
+#         ax.set_yticklabels(class_names, fontsize=14)
+#         ax.set_xlabel("Predicted", fontsize=16)
+#         ax.set_ylabel("True", fontsize=16)
+
+#         for i in range(n):
+#             for j in range(n):
+#                 val = cm_norm[i, j]
+#                 color = 'white' if val > 0.5 else 'black'
+#                 ax.text(j, i, f"{val:.2f}", ha='center', va='center',
+#                         fontsize=12, color=color)
+
+#     cb = fig.colorbar(im, cax=cbar_ax, label="Recall")
+#     cb.ax.yaxis.label.set_fontsize(20)
+#     cb.ax.tick_params(labelsize=14)
+#     plt.tight_layout()
+#     path = os.path.join(out_dir, "confusion_matrices.png")
+#     fig.savefig(path, dpi=200, bbox_inches='tight')
+#     plt.close()
+#     print(f"  Saved: {path}")
 
 
 def main():

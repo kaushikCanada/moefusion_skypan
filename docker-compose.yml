@@ -2,7 +2,7 @@ services:
   moefusion:
     build: .
     image: moefusion:latest
-    user: "${UID}:${GID}"
+    # user: "${UID}:${GID}"
     deploy:
       resources:
         reservations:

@@ -239,13 +239,21 @@ class PotsdamDataset(Dataset):
         gt = _rgb_mask_to_class_ids(lbl, self.ignore_index)
         ndsm = _morphological_ndsm_from_dsm(dsm, self.ndsm_opening_kernel)
 
+        # NDVI = (NIR - Red) / (NIR + Red);  bands: R=0, G=1, B=2, IR=3
+        nir = ms[3:4]
+        red = ms[0:1]
+        ndvi = (nir - red) / (nir + red + 1e-8)
+        ndvi = np.clip(ndvi, -1.0, 1.0)
+
         ignore_mask = gt == self.ignore_index
         ms[:, ignore_mask] = 0.0
         ndsm[:, ignore_mask] = 0.0
+        ndvi[:, ignore_mask] = 0.0
 
         return {
             "ms": torch.from_numpy(ms).float(),
             "ndsm": torch.from_numpy(ndsm).float(),
+            "ndvi": torch.from_numpy(ndvi).float(),
             "gt": torch.from_numpy(gt).long(),
             "tile_id": rec.tile_id,
         }
@@ -298,7 +306,7 @@ class PotsdamDataModule:
             K_aug.RandomResizedCrop(
                 size=(self.patch_size, self.patch_size),
                 scale=(0.8, 1.0), p=0.5),
-            data_keys=["image", "image", "mask"],
+            data_keys=["image", "image", "image", "mask"],
         )
 
         self.num_classes = len(ds.get("class_names", CLASS_NAMES))
@@ -349,8 +357,9 @@ class PotsdamDataModule:
     def _collate(batch):
         ms = torch.stack([s["ms"] for s in batch])
         ndsm = torch.stack([s["ndsm"] for s in batch])
+        ndvi = torch.stack([s["ndvi"] for s in batch])
         gt = torch.stack([s["gt"] for s in batch])
-        return ms, ndsm, gt
+        return ms, ndsm, ndvi, gt
 
     def train_loader(self):
         return DataLoader(self.train_dataset, batch_size=self.batch_size,
@@ -379,16 +388,18 @@ class PotsdamDataModule:
             ndsm = (ndsm - mean) / std.clamp_min(1e-6)
         return ms, ndsm
 
-    def augment(self, ms, ndsm, gt):
+    def augment(self, ms, ndsm, ndvi, gt):
         """Apply training augmentations (on GPU)."""
         gt = gt.unsqueeze(1).float()
-        ms, ndsm, gt = self.transform(ms, ndsm, gt)
+        ms, ndsm, ndvi, gt = self.transform(ms, ndsm, ndvi, gt)
         # Kornia may add a leading dim — squeeze back to (B, C, H, W)
         if ms.ndim == 5:
             ms = ms.squeeze(1)
         if ndsm.ndim == 5:
             ndsm = ndsm.squeeze(1)
+        if ndvi.ndim == 5:
+            ndvi = ndvi.squeeze(1)
         if gt.ndim == 5:
             gt = gt.squeeze(1)
         gt = gt.squeeze(1).long()
-        return ms, ndsm, gt
+        return ms, ndsm, ndvi, gt

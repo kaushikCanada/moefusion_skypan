@@ -1,4 +1,4 @@
-"""Visualize random Potsdam samples: RGB, IR, nDSM, ground truth side-by-side."""
+"""Visualize random Potsdam samples: RGB, IR, nDSM, NDVI, ground truth side-by-side."""
 
 import argparse
 import random
@@ -9,17 +9,16 @@ import torch
 
 
 CLASS_COLORS = np.array([
-    [0, 0, 0],         # 0: ignore
-    [255, 0, 0],       # 1: Clutter/background
-    [180, 180, 180],   # 2: Impervious surfaces
-    [0, 0, 255],       # 3: Building
-    [0, 255, 255],     # 4: Low vegetation
-    [0, 255, 0],       # 5: Tree
-    [255, 255, 0],     # 6: Car
+    [0, 0, 0],         # 0: ignore/clutter
+    [180, 180, 180],   # 1: Impervious surfaces
+    [0, 0, 255],       # 2: Building
+    [0, 255, 255],     # 3: Low vegetation
+    [0, 255, 0],       # 4: Tree
+    [255, 255, 0],     # 5: Car
 ], dtype=np.uint8)
 
 CLASS_NAMES = [
-    "Ignore", "Clutter", "Impervious", "Building",
+    "Ignore", "Impervious", "Building",
     "Low veg", "Tree", "Car"
 ]
 
@@ -65,6 +64,7 @@ def main():
         sample = train_ds[idx]
         ms = sample["ms"].numpy()       # (4, H, W)
         ndsm = sample["ndsm"].numpy()   # (1, H, W)
+        ndvi = sample["ndvi"].numpy()   # (1, H, W)
         gt = sample["gt"].numpy()       # (H, W)
         tile = sample["tile_id"]
 
@@ -74,16 +74,17 @@ def main():
         axes[row, 0].set_title(f"RGB ({tile})")
         axes[row, 0].axis('off')
 
-        # IR (band 3)
-        ir = percentile_stretch(ms[3])
-        axes[row, 1].imshow(ir, cmap='RdYlGn')
-        axes[row, 1].set_title("IR")
+        # nDSM
+        axes[row, 1].imshow(ndsm[0], cmap='viridis',
+                            vmin=0, vmax=np.percentile(ndsm[0], 98))
+        axes[row, 1].set_title(f"nDSM (max={ndsm.max():.1f}m)")
         axes[row, 1].axis('off')
 
-        # nDSM
-        axes[row, 2].imshow(ndsm[0], cmap='viridis',
-                            vmin=0, vmax=np.percentile(ndsm[0], 98))
-        axes[row, 2].set_title(f"nDSM (max={ndsm.max():.1f}m)")
+        # NDVI
+        ndvi_lo = np.percentile(ndvi[0], 2)
+        ndvi_hi = np.percentile(ndvi[0], 98)
+        axes[row, 2].imshow(ndvi[0], cmap='RdYlGn', vmin=ndvi_lo, vmax=ndvi_hi)
+        axes[row, 2].set_title(f"NDVI [{ndvi_lo:.2f}, {ndvi_hi:.2f}]")
         axes[row, 2].axis('off')
 
         # Ground truth

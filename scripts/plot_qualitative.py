@@ -115,11 +115,11 @@ def main():
     print(f"Collecting {args.n} samples (seed={args.seed})...")
     samples = []
     with torch.no_grad():
-        for batch_idx, (ms, ndsm, gt) in enumerate(test_loader):
+        for batch_idx, (ms, ndsm, ndvi, gt) in enumerate(test_loader):
             if batch_idx not in batch_indices:
                 continue
 
-            ms, ndsm, gt = ms.to(device), ndsm.to(device), gt.to(device)
+            ms, ndsm, ndvi, gt = ms.to(device), ndsm.to(device), ndvi.to(device), gt.to(device)
             ms, ndsm = dm.normalize(ms, ndsm, device=device)
 
             B = ms.shape[0]
@@ -127,7 +127,7 @@ def main():
 
             preds = {}
             for label in args.labels:
-                out = forward_fns[label](models[label], ms, ndsm, chn_ids,
+                out = forward_fns[label](models[label], ms, ndsm, ndvi, chn_ids,
                                          rgb_indices)
                 pred = out['logits'].argmax(dim=1)
                 # Mask predictions to 0 where GT is ignore
